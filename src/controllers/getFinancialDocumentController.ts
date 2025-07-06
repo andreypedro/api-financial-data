@@ -5,7 +5,7 @@ export const FinancialDocumentController = async (req: Request, res: Response, n
 
     try {
         const financialDocument = new FinancialDocumentService()
-        const response = await financialDocument.import()
+        const response = await financialDocument.importMarketDocument()
 
         //if(await financialDocument.getDocumentFromUrl('')) {
         //    console.log('Document was loaded from website')

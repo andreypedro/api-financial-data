@@ -6,6 +6,6 @@ import FinancialDocumentController from '../controllers/getFinancialDocumentCont
 const route = Router()
 
 route.get('/users', getUsersController)
-route.get('/financial-documents/import', FinancialDocumentController)
+route.get('/rutine/import', FinancialDocumentController)
 
 export default route;

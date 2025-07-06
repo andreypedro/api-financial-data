@@ -1,70 +1,50 @@
 import axios from "axios"
-
-interface FinancialDocument {
-    ticker: string
-    category: 'UPDATE' | 'REPORT'
-    summary: string
-    description: string
-}
-
-/*
-// https://fnet.bmfbovespa.com.br/fnet/publico/pesquisarGerenciadorDocumentosCVM?paginaCertificados=false&tipoFundo=1
-UPDATE THE INTERFACE:
-
-{
-      "id": 940464,
-      "descricaoFundo": "LIFE CAPITAL PARTNERS FUNDO DE INVESTIMENTOS IMOBILIÁRIOS",
-      "categoriaDocumento": "Relatórios",
-      "tipoDocumento": "Relatório Gerencial",
-      "especieDocumento": "",
-      "dataReferencia": "30/05/2025",
-      "dataEntrega": "04/07/2025 18:58",
-      "status": "AC",
-      "descricaoStatus": "Ativo com visualização",
-      "analisado": "N",
-      "situacaoDocumento": "A",
-      "assuntos": null,
-      "altaPrioridade": false,
-      "formatoDataReferencia": "3",
-      "versao": 1,
-      "modalidade": "AP",
-      "descricaoModalidade": "Apresentação",
-      "nomePregao": "FII LIFE",
-      "informacoesAdicionais": "FII LIFE;",
-      "arquivoEstruturado": "",
-      "formatoEstruturaDocumento": null,
-      "nomeAdministrador": null,
-      "cnpjAdministrador": null,
-      "cnpjFundo": null,
-      "idFundo": null,
-      "idTemplate": 0,
-      "idSelectNotificacaoConvenio": null,
-      "idSelectItemConvenio": 0,
-      "indicadorFundoAtivoB3": false,
-      "idEntidadeGerenciadora": null,
-      "ofertaPublica": null,
-      "numeroEmissao": null,
-      "tipoPedido": null,
-      "dda": null,
-      "codSegNegociacao": null,
-      "fundoOuClasse": null,
-      "nomePrimeiraVisualizacao": null
-    },
-*/
+import { IMarketDocument } from "interfaces/IMarketDocument"
+import { IMarketDcumentFromBMFBovespa } from "interfaces/IMarketDcumentFromBMFBovespa"
+import { fiis } from "../data/fii"
 
 class FinancialDocumentService {
 
     constructor() {}
 
-    async import(): Promise<FinancialDocument[]> {
-        // here the code
+    async importFromBMFBovespa(): Promise<IMarketDocument[]> {
 
-        const url = "https://fnet.bmfbovespa.com.br/fnet/publico/pesquisarGerenciadorDocumentosDados?d=1&s=0&l=10&o%5B0%5D%5BdataEntrega%5D=desc&tipoFundo=1&idCategoriaDocumento=0&idTipoDocumento=0&idEspecieDocumento=0&isSession=true&_=1751666002042"
-        const response = await axios.get<FinancialDocument[]>(url)
+        try {
+            const url = "https://fnet.bmfbovespa.com.br/fnet/publico/pesquisarGerenciadorDocumentosDados?d=1&s=0&l=10&o%5B0%5D%5BdataEntrega%5D=desc&tipoFundo=1&idCategoriaDocumento=0&idTipoDocumento=0&idEspecieDocumento=0&isSession=true&_=1751666002042"
+            const response = await axios.get(url)
 
-        const financialDocumentList = response.data
-        
-        return financialDocumentList
+            const marketDocumentDataFromBMFBovespa: IMarketDcumentFromBMFBovespa[] = response.data.data
+            
+            const marketDocumentData: IMarketDocument[] = marketDocumentDataFromBMFBovespa
+                .filter(document => document.nomePregao != '')
+                .map(document => {
+                    const matchedFii = fiis.find(fii => fii.tradingName === document.nomePregao);
+                    const ticker = matchedFii?.ticker || null 
+
+                    return {
+                        id: document.id,
+                        ticker: ticker as string,
+                        fundDescription: document.descricaoFundo,
+                        tradingName: document.nomePregao
+                    }
+                    
+                }).filter(item => item.ticker !== null)
+
+            return marketDocumentData
+        }
+        catch(err) {
+            throw new Error('It was not possible to get market documents from BMF.')
+        }
+    }
+
+    async importMarketDocument() {
+        const marketDocumentData = await this.importFromBMFBovespa()
+
+        // console.log(marketDocumentData)
+
+        marketDocumentData.map(document => {
+            console.log('Trading Name:', document.ticker, document.tradingName)
+        })
     }
 
     async getDocumentFromUrl(url: string): Promise<boolean> {

@@ -1,7 +1,8 @@
-export interface MarketDocument {
+export interface IMarketDocument {
   id: number;
+  ticker?: string;
   fundDescription: string;
-  documentCategory: string;
+  /*documentCategory: string;
   documentType: string;
   documentSubtype: string;
   referenceDate: Date // e.g. "30/05/2025"
@@ -16,8 +17,9 @@ export interface MarketDocument {
   version: number;
   modality: string;
   modalityDescription: string;
-  tradingName: string;
-  additionalInformation: string;
+  */
+ tradingName: string;
+ /* additionalInformation: string;
   structuredFile: string;
   documentStructureFormat: string | null;
   administratorName: string | null;
@@ -35,5 +37,5 @@ export interface MarketDocument {
   dda: string | null;
   negotiationCode: string | null;
   fundOrClass: string | null;
-  firstViewName: string | null;
+  firstViewName: string | null;*/
 }
