@@ -15,7 +15,8 @@ export const SampleController = (req: Request, res: Response, next: NextFunction
     }
 
     interface User {
-        age?: number
+        age?: number;
+        display?(): string;
     }
 
     const user: Readonly<Omit<User, "username" | "email">> = {
@@ -28,6 +29,29 @@ export const SampleController = (req: Request, res: Response, next: NextFunction
         name: 'Andrey',
         username: 'andreypedro'
     }
+
+    type typedAwaited = Awaited<Promise<string>>
+    type requiredProps = Required<User>
+    type nonNullable = NonNullable<string | number | null | undefined>
+
+    const returnedUser = {
+        id: 33,
+        name: 'José',
+        email: 'jose@jose.com'
+    }
+
+    const newUser: User = Object.create(returnedUser)
+    console.log('newUser', newUser)
+
+    const great = (name: string): void => {
+        console.log(`Hiiiiiiii ${name}!!!!`)
+    }
+
+    const print = (cb: (a: string) => void): void => {
+        cb('Andrey')
+    }
+
+    print(great)
 
     //user.name = 'KJddd'
 
@@ -79,6 +103,16 @@ export const SampleController = (req: Request, res: Response, next: NextFunction
 
         return -1
     }
+
+    type BinarySearchParameter = Parameters<typeof binarySearch>
+
+    type BinarySearchReturn = ReturnType<typeof binarySearch>
+
+    const obj = Object.create({ id: 1 })
+
+
+
+
 
     // explain how to do a binary search
     const sortedArray = [1, 5, 8, 12, 16, 23, 28, 30, 35, 40, 45, 50, 55, 60];

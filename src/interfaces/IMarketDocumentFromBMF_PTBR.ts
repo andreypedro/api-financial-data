@@ -1,4 +1,4 @@
-export interface IMarketDcumentFromBMFBovespa {
+export interface IMarketDcumentFromBMF_PTBR {
   id: number;
   descricaoFundo: string;
   categoriaDocumento: string;

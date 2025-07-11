@@ -5,7 +5,7 @@ const PORT = process.env.API_PORT
 
 async function startServer() {
 
-    //connectDB()
+    connectDB()
 
     server.listen(PORT, () => {
         console.log('Server is running...')

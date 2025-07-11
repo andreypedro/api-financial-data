@@ -1,8 +1,8 @@
-export interface IMarketDocument {
+export interface IMarketDocumentFromBMF {
   id: number;
   ticker?: string;
   fundDescription: string;
-  /*documentCategory: string;
+  documentCategory: string;
   documentType: string;
   documentSubtype: string;
   referenceDate: Date // e.g. "30/05/2025"
@@ -17,9 +17,8 @@ export interface IMarketDocument {
   version: number;
   modality: string;
   modalityDescription: string;
-  */
- tradingName: string;
- /* additionalInformation: string;
+  tradingName: string;
+  additionalInformation: string;
   structuredFile: string;
   documentStructureFormat: string | null;
   administratorName: string | null;
@@ -37,5 +36,5 @@ export interface IMarketDocument {
   dda: string | null;
   negotiationCode: string | null;
   fundOrClass: string | null;
-  firstViewName: string | null;*/
+  firstViewName: string | null;
 }
