@@ -1,10 +1,10 @@
-import MarketDocumentModel, { IMarketDocument } from "entities/MarketDocument";
+import MarketDocumentModel, { IMarketDocument } from "../entities/MarketDocument";
 
 
 class MarketDocumentRepository {
-    async create(data: IMarketDocument) {
-    return MarketDocumentModel.create(data);
-  }
+    async create(data: Partial<IMarketDocument>) {
+        return MarketDocumentModel.create(data);
+    }
 
   async findAll() {
     return MarketDocumentModel.find();

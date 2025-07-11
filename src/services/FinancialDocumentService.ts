@@ -1,9 +1,10 @@
 import axios from "axios"
-import { IMarketDocument } from "entities/MarketDocument";
-import { IMarketDcumentFromBMF_PTBR } from "interfaces/IMarketDocumentFromBMF_PTBR"
+import { IMarketDocument } from "../entities/MarketDocument";
+import { IMarketDcumentFromBMF_PTBR } from "../interfaces/IMarketDocumentFromBMF_PTBR"
 import { fiis } from "../data/fii"
+import { v4 as uuidv4 } from 'uuid';
 
-type IMarketDocumentUsable = Pick<IMarketDocument, 'id' | 'ticker' | 'fundDescription' | 'tradingName'>
+type IMarketDocumentUsable = Pick<IMarketDocument, 'externalId' | 'ticker' | 'fundDescription' | 'tradingName'>
 
 class FinancialDocumentService {
 
@@ -43,7 +44,7 @@ class FinancialDocumentService {
                     const ticker = matchedFii?.ticker || null 
 
                     return {
-                        id: document.id,
+                        externalId: document.id,
                         ticker: ticker as string,
                         fundDescription: document.descricaoFundo,
                         tradingName: document.nomePregao
@@ -60,13 +61,12 @@ class FinancialDocumentService {
 
     async importMarketDocument() {
         const marketDocumentData = await this.importFromBMFBovespa();
-        const { v4: uuidv4 } = await import('uuid');
         const MarketDocumentRepository = (await import('../repositories/MarketDocumentRepository')).default;
 
         for (const document of marketDocumentData) {
             const docToSave = {
                 id: uuidv4(),
-                externalId
+                externalId: document.externalId,
                 ticker: document.ticker,
                 fundDescription: document.fundDescription,
                 tradingName: document.tradingName

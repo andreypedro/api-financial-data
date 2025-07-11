@@ -1,5 +1,5 @@
 export interface IMarketDcumentFromBMF_PTBR {
-  id: number;
+  id: string;
   descricaoFundo: string;
   categoriaDocumento: string;
   tipoDocumento: string;
