@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import FinancialDocumentService from "../services/FinancialDocumentService";
 
-export const FinancialDocumentController = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const GetFinancialDocumentController = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
 
     try {
         const financialDocument = new FinancialDocumentService()
@@ -17,5 +17,3 @@ export const FinancialDocumentController = async (req: Request, res: Response, n
         next(err)
     }
 }
-
-export default FinancialDocumentController

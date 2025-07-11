@@ -1,11 +1,17 @@
 
 import { Router } from 'express'
-import { getUsersController } from '../controllers/getUsersController'
-import FinancialDocumentController from '../controllers/getFinancialDocumentController'
+import { GetUsersController } from '../controllers/GetUsersController'
+import { GetFinancialDocumentController } from '../controllers/GetFinancialDocumentController'
+import { SampleController } from '../controllers/SampleController'
+import { OnFleetAuthenticationController } from '../controllers/OnFleetAuthenticationController'
+import { ChallengeController } from '../controllers/ChallangeController'
 
 const route = Router()
 
-route.get('/users', getUsersController)
-route.get('/rutine/import', FinancialDocumentController)
+route.get('/users', GetUsersController)
+route.get('/rutine/import', GetFinancialDocumentController)
+route.get('/sample', SampleController)
+route.get('/onfleet-authentication', OnFleetAuthenticationController)
+route.get('/challenge', ChallengeController)
 
 export default route;

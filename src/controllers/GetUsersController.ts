@@ -29,7 +29,7 @@ const usersStructure = [
 
 type IUsers = typeof usersStructure
 
-export const getUsersController = async (req: Request, res: Response, next: NextFunction) => {
+export const GetUsersController = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const apiUrl = process.env.API_URL
 
