@@ -3,7 +3,10 @@ import MarketDocumentModel, { IMarketDocument } from "../entities/MarketDocument
 
 class MarketDocumentRepository {
     async create(data: Partial<IMarketDocument>) {
-        return MarketDocumentModel.create(data);
+
+      console.log('data to save', data)
+
+      return MarketDocumentModel.create(data);
     }
 
   async findAll() {
@@ -12,6 +15,10 @@ class MarketDocumentRepository {
 
   async findById(id: string) {
     return MarketDocumentModel.findOne({ id });
+  }
+
+  async findByExternalId(externalId: IMarketDocument['externalId']) {
+    return MarketDocumentModel.findOne({ externalId })
   }
 
   async update(id: string, data: Partial<IMarketDocument>) {

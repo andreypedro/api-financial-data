@@ -10,6 +10,7 @@ export interface IMarketDocument extends Document {
 
 const MarketDocumentSchema = new Schema<IMarketDocument>({
     id: { type: String, required: true, unique: true },
+    externalId: { type: String, required: true },
     ticker: { type: String, required: true},
     fundDescription: { type: String, required: true },
     tradingName: { type: String, required: true }

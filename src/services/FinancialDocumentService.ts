@@ -43,6 +43,8 @@ class FinancialDocumentService {
                     const matchedFii = fiis.find(fii => fii.tradingName === document.nomePregao);
                     const ticker = matchedFii?.ticker || null 
 
+                    console.log('document.id', document.id)
+
                     return {
                         externalId: document.id,
                         ticker: ticker as string,
@@ -64,9 +66,21 @@ class FinancialDocumentService {
         const MarketDocumentRepository = (await import('../repositories/MarketDocumentRepository')).default;
 
         for (const document of marketDocumentData) {
+
+            console.log('document', document)
+
+            const externalId = document.externalId;
+
+            const exists = await MarketDocumentRepository.findByExternalId(externalId)
+
+            if(exists) {
+                console.log(`Skipping already existing externalID ${ externalId }`)
+                continue;
+            }
+
             const docToSave = {
                 id: uuidv4(),
-                externalId: document.externalId,
+                externalId,
                 ticker: document.ticker,
                 fundDescription: document.fundDescription,
                 tradingName: document.tradingName
