@@ -8,7 +8,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Downloader } from '../utils/Downloader';
 import ExtractPdfContent from '../utils/ExtractPdfContent';
-import { OllamaSummarizer } from 'utils/OllamaSummarizer';
+import { OllamaSummarizer } from '../utils/OllamaSummarizer';
+import MessageProcessorService from './MessageProcessorService';
 
 type IMarketDocumentUsable = Pick<
    IMarketDocument,
@@ -141,6 +142,13 @@ class FinancialDocumentService {
             const pdfContent = await this.extractPdfContent(filePath);
 
             console.log('pdfContent ==>', pdfContent);
+
+            const summarizedContent = await this.summarize(pdfContent);
+
+            console.log('Summarized Content:', summarizedContent);
+
+            const messageProcessor = new MessageProcessorService();
+            messageProcessor.sendMessage('6681738390', summarizedContent);
          } catch (error) {
             console.error(`Error downloading file for externalId ${document.externalId}:`, error);
          }
@@ -180,11 +188,18 @@ class FinancialDocumentService {
    }
 
    async summarize(text: string) {
-      const model = 'phi4-mini';
-      const prompt = '';
+      let prompt: string = '';
+      prompt +=
+         'Por favor, **resuma o seguinte documento financeiro** em **Português do Brasil (PT-BR)**. ';
+      prompt +=
+         'O resumo é destinado a um **investidor não especialista**, então use uma **linguagem natural e fácil de entender**. ';
+      prompt +=
+         'Concentre-se em extrair e apresentar **apenas os pontos mais importantes**, como informações sobre **performance, riscos e oportunidades**.';
 
       const ollamaSummarizer = new OllamaSummarizer();
-      ollamaSummarizer.summarize(text, model, prompt);
+      const summarizedContent = await ollamaSummarizer.summarize(text.slice(0, 500), prompt);
+
+      return summarizedContent;
    }
 }
 

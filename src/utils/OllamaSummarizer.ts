@@ -35,7 +35,7 @@ export class OllamaSummarizer {
     */
    constructor(
       ollamaBaseUrl: string = 'http://localhost:11434',
-      defaultModel: string = 'phi-3-mini'
+      defaultModel: string = 'gemma3:12b'
    ) {
       this.ollamaBaseUrl = ollamaBaseUrl;
       this.defaultModel = defaultModel;
@@ -53,11 +53,10 @@ export class OllamaSummarizer {
     */
    public async summarize(
       textToSummarize: string,
-      model?: string,
-      summaryInstructions: string = 'de forma concisa e clara',
+      summaryInstructions: string,
       options?: OllamaGenerateRequestOptions
    ): Promise<string> {
-      const targetModel = model || this.defaultModel;
+      const targetModel = this.defaultModel;
       const generateUrl = `${this.ollamaBaseUrl}/api/generate`;
 
       // Constructing the prompt is key to getting a good summary
@@ -76,7 +75,7 @@ export class OllamaSummarizer {
                headers: {
                   'Content-Type': 'application/json',
                },
-               timeout: 30000, // Set a timeout for the API call (30 seconds)
+               timeout: 60000, // Set a timeout for the API call (30 seconds)
             }
          );
 
