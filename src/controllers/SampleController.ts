@@ -1,11 +1,10 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from 'express';
 
 export const SampleController = (req: Request, res: Response, next: NextFunction) => {
-
     // READONLY with generics
     type Readonly<T> = {
-        readonly [P in keyof T]: T[P]
-    }
+        readonly [P in keyof T]: T[P];
+    };
 
     interface User {
         id: number;
@@ -19,100 +18,90 @@ export const SampleController = (req: Request, res: Response, next: NextFunction
         display?(): string;
     }
 
-    const user: Readonly<Omit<User, "username" | "email">> = {
+    const user: Readonly<Omit<User, 'username' | 'email'>> = {
         id: 3,
         name: 'Andrey',
-        age: 34
-    }
+        age: 34,
+    };
 
-    const updateUser: Omit<User, "id" | "email"> = {
+    const updateUser: Omit<User, 'id' | 'email'> = {
         name: 'Andrey',
-        username: 'andreypedro'
-    }
+        username: 'andreypedro',
+    };
 
-    type typedAwaited = Awaited<Promise<string>>
-    type requiredProps = Required<User>
-    type nonNullable = NonNullable<string | number | null | undefined>
+    type typedAwaited = Awaited<Promise<string>>;
+    type requiredProps = Required<User>;
+    type nonNullable = NonNullable<string | number | null | undefined>;
 
     const returnedUser = {
         id: 33,
         name: 'José',
-        email: 'jose@jose.com'
-    }
+        email: 'jose@jose.com',
+    };
 
-    const newUser: User = Object.create(returnedUser)
-    console.log('newUser', newUser)
+    const newUser: User = Object.create(returnedUser);
+    console.log('newUser', newUser);
 
     const great = (name: string): void => {
-        console.log(`Hiiiiiiii ${name}!!!!`)
-    }
+        console.log(`Hiiiiiiii ${name}!!!!`);
+    };
 
     const print = (cb: (a: string) => void): void => {
-        cb('Andrey')
-    }
+        cb('Andrey');
+    };
 
-    print(great)
+    print(great);
 
     //user.name = 'KJddd'
 
-    type Coordinate = [number, number]
-    const coordinate: Coordinate = [3333, 22322]
+    type Coordinate = [number, number];
+    const coordinate: Coordinate = [3333, 22322];
 
     type Name = {
-        name: string
-    }
+        name: string;
+    };
 
     type Age = {
-        age: number
-    }
+        age: number;
+    };
 
-    type Person = Name & Age
+    type Person = Name & Age;
 
     const person: Person = {
         name: 'JOse',
-        age: 3434
+        age: 3434,
+    };
+
+    const myArr2 = [1, 2, 3, 45, 6, 7, 7, 7, 86, 5, 4, 4];
+
+    for (let num of myArr2) {
+        console.log(num);
     }
 
-
-
-    const myArr2 = [1,2,3,45,6,7,7,7,86,5,4,4]
-
-    for(let num of myArr2) {
-        console.log(num)
-    }
-   
-   
     const binarySearch = (arr: number[], target: number): number => {
         let low = 0;
         let high = arr.length - 1;
-        
+
         while (low <= high) {
+            const mid = low + Math.floor((high - low) / 2);
 
-            const mid = low + Math.floor((high - low) / 2)
-
-            if(arr[mid] === target) {
+            if (arr[mid] === target) {
                 return mid;
-            }
-            else if(arr[mid] < target) {
+            } else if (arr[mid] < target) {
                 low = mid + 1;
-            }
-            else {
+            } else {
                 high = mid - 1;
             }
         }
 
-        return -1
-    }
+        return -1;
+    };
 
-    type BinarySearchParameter = Parameters<typeof binarySearch>
+    type BinarySearchParameter = Parameters<typeof binarySearch>;
 
-    type BinarySearchReturn = ReturnType<typeof binarySearch>
+    type BinarySearchReturn = ReturnType<typeof binarySearch>;
 
-    const obj = Object.create({ id: 1 })
-
-
-
-
+    const obj = Object.create({ id: 1 });
 
     // explain how to do a binary search
     const sortedArray = [1, 5, 8, 12, 16, 23, 28, 30, 35, 40, 45, 50, 55, 60];
@@ -127,16 +116,16 @@ export const SampleController = (req: Request, res: Response, next: NextFunction
     // console.log('date ordered', ['2025-10-03', '2025-08-06', '2024-03-01'].sort((a, b) => new Date(a).getTime() - new Date().getTime()))
 
     // identify how many times each numbers appears
-    const myArray = [0,3,1,8,3,3,6,7,3,1,3,5,6,7,2]
+    const myArray = [0, 3, 1, 8, 3, 3, 6, 7, 3, 1, 3, 5, 6, 7, 2];
 
-    const myMap = new Map()
-    
-    myArray.map(num => {
-        const count = myMap.get(num) ? myMap.get(num) + 1 : 1
-        myMap.set(num, count)
-    })
+    const myMap = new Map();
+
+    myArray.map((num) => {
+        const count = myMap.get(num) ? myMap.get(num) + 1 : 1;
+        myMap.set(num, count);
+    });
 
     // console.log(myMap)
 
-    res.send()
-}
+    res.send();
+};
