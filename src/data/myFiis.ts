@@ -19,4 +19,5 @@ export const myFiis: string[] = [
    'XPML11',
    'JURO11',
    'RBIF11',
+   'TRXY11',
 ];

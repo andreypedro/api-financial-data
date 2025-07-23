@@ -78,30 +78,22 @@ export class Telegram {
       // Caracteres especiais que precisam ser escapados para MarkdownV2
       const specialChars = /[_\*\[\]\(\)~`>#\+\-=\{\}\.!\\]/g;
 
-      // Substitui caracteres especiais, mas com uma exceção para o negrito
-      // A ideia é escapar os caracteres especiais que NÃO estão dentro de um par de **
-      // No Telegram, o negrito é feito com **texto**
+      // Escapa todos os caracteres especiais
       let formattedMessage = message.replace(specialChars, (char) => '\\' + char);
 
-      // Agora, precisamos lidar com o negrito.
-      // A regex abaixo encontra pares de ** que não são escapados por uma barra invertida
-      // e os substitui por * (que é o que o Telegram usa para negrito em MarkdownV2)
-      // Além disso, garantimos que o conteúdo dentro do negrito não seja escapado duplamente.
-      formattedMessage = formattedMessage.replace(/\\\*\*(.*?)\\\*\*/g, '**$1**');
-
-      // Trata o caso em que o negrito é "escapado" mas a intenção é que seja negrito.
-      // Por exemplo, se a mensagem original tinha `**Nova emissão**`, nossa primeira `replace`
-      // transformaria em `\*\*Nova emissão\*\*`. O Telegram espera `**Nova emissão**`.
-      // Então, precisamos "reverter" o escape para os asteriscos que delimitam o negrito.
+      // Trata negrito (**texto**) -> *texto*
       formattedMessage = formattedMessage.replace(/\\\*\\\*(.*?)\\\*\\\*/g, '**$1**');
-
-      // O Telegram MarkdownV2 usa `*` para negrito, não `**`.
-      // Se a intenção é ter negrito, devemos usar `*`.
-      // A sua mensagem original já usa `**`, então vamos ajustar isso.
       formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '*$1*');
 
-      // Adicionalmente, alguns caracteres podem ser problemáticos após a primeira passada.
-      // A barra invertida (\) também precisa ser escapada se for literal.
+      // Trata itálico (__texto__ ou _texto_) -> _texto_
+      // Primeiro, remove escapes dos underlines duplos
+      formattedMessage = formattedMessage.replace(/\\_\\_(.*?)\\_\\_/g, '__$1__');
+      // Converte __texto__ para _texto_
+      formattedMessage = formattedMessage.replace(/__(.*?)__/g, '_$1_');
+      // Remove escapes dos underlines simples
+      formattedMessage = formattedMessage.replace(/\\_(.*?)\\_/g, '_$1_');
+
+      // Escapa barras invertidas que não fazem parte da sintaxe MarkdownV2
       formattedMessage = formattedMessage.replace(/\\(?![\*_\[\]\(\)~`>#\+\-=\{\}\.!])/g, '\\\\');
 
       return formattedMessage;

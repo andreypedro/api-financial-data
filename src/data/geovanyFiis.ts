@@ -1,0 +1,17 @@
+const geovanyFiis: string[] = [
+   'XPBR31',
+   'BCFF11',
+   'BCRI11',
+   'TTHE11',
+   'FIGS11',
+   'FIIB11',
+   'FLRP11',
+   'HFOF11',
+   'KISU11',
+   'LVBI11',
+   'MXRF11',
+   'RBRF11',
+   'TVRI11',
+   'VILG11',
+   'XPLG11',
+];

@@ -60,7 +60,7 @@ export class OllamaSummarizer {
       const generateUrl = `${this.ollamaBaseUrl}/api/generate`;
 
       // Constructing the prompt is key to getting a good summary
-      const prompt = `${summaryInstructions}\n\n"""\n${textToSummarize}\n"""\n\nResumo:`;
+      const prompt = `${summaryInstructions}\n\n"""\n${textToSummarize}\n"":`;
 
       try {
          const response = await axios.post<OllamaGenerateResponse>(
@@ -78,6 +78,8 @@ export class OllamaSummarizer {
                timeout: 60000, // Set a timeout for the API call (30 seconds)
             }
          );
+
+         console.log('OLLAMA RESPONSE:', response.data);
 
          // Validate the response structure
          if (!response.data || typeof response.data.response !== 'string') {

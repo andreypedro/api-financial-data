@@ -10,6 +10,7 @@ import { Downloader } from '../utils/Downloader';
 import ExtractPdfContent from '../utils/ExtractPdfContent';
 import { OllamaSummarizer } from '../utils/OllamaSummarizer';
 import MessageProcessorService from './MessageProcessorService';
+import { myFiis } from '../data/myFiis';
 
 type IMarketDocumentUsable = Pick<
    IMarketDocument,
@@ -25,17 +26,17 @@ class FinancialDocumentService {
    constructor() {}
 
    async import() {
-      // const marketDocumentData = await this.importDataFromBMFBovespa();
+      const marketDocumentData = await this.importDataFromBMFBovespa();
 
-      // if (!marketDocumentData) {
-      //    throw new Error('Error while import data from BMF');
-      // }
+      if (!marketDocumentData) {
+         throw new Error('Error while import data from BMF');
+      }
 
-      // await this.saveMarketData(marketDocumentData);
+      await this.saveMarketData(marketDocumentData);
 
-      //await this.importFiles();
+      await this.importFiles();
 
-      // await this.summarizeDocuments();
+      await this.summarizeDocuments();
 
       await this.publishMessages();
    }
@@ -58,7 +59,7 @@ class FinancialDocumentService {
 
       try {
          const foundType = 1;
-         const referenceDate = '17/07/2025';
+         const referenceDate = '22/07/2025';
          const status = 'A';
          const quantity = 100;
          const page = 1;
@@ -155,7 +156,7 @@ class FinancialDocumentService {
             console.error(`Error downloading file for externalId ${document.externalId}:`, error);
          }
 
-         break;
+         // break;
       }
       console.log('All document downloads attempted.');
    }
@@ -194,86 +195,76 @@ class FinancialDocumentService {
       return content;
    }
 
-   async summarizeDocuments(status: IMarketDocument['status'] = 'FILE_DOWNLOADED') {
-      function isValidResponse(
-         obj: any
-      ): obj is { tldr: string; summary: string; content: string } {
-         return (
-            typeof obj === 'object' &&
-            obj !== null &&
-            typeof obj.tldr === 'string' &&
-            typeof obj.summary === 'string' &&
-            typeof obj.content === 'string'
-         );
-      }
-
+   async summarizeDocuments(status: IMarketDocument['status'] = 'FILE_DOWNLOADED'): Promise<void> {
       if (!status) {
          throw new Error('Status was not sent.');
       }
 
       const documents = await MarketDocumentRepository.findByStatus(status);
 
-      documents.forEach(async (document) => {
+      for (const document of documents) {
          const filePath = this.FILES_PATH + '/' + document.id + '.' + document.fileExtension;
-         const fileContent = await this.extractPdfContent(filePath);
+         let fileContent;
+
+         if (document.fileExtension === 'pdf') {
+            fileContent = await this.extractPdfContent(filePath);
+         } else if (document.fileExtension === 'xml') {
+            fileContent = fs.readFileSync(filePath, 'utf-8');
+         }
+
+         if (!fileContent) {
+            throw new Error('Error during getting content from file: ' + filePath);
+         }
 
          const summarizedResponse: string = await this.summarize(fileContent);
 
-         // Remove blocos de markdown caso existam
-         let cleanResponse = summarizedResponse.trim();
-         if (cleanResponse.startsWith('```json')) {
-            cleanResponse = cleanResponse
-               .replace(/^```json/, '')
-               .replace(/```$/, '')
-               .trim();
-         } else if (cleanResponse.startsWith('```')) {
-            cleanResponse = cleanResponse.replace(/^```/, '').replace(/```$/, '').trim();
-         }
-
-         console.log('=====>', cleanResponse);
-
-         const summarizedResponseJson = JSON.parse(cleanResponse);
-
-         if (!isValidResponse(summarizedResponseJson)) {
-            throw new Error('AI response was not in the right format.');
-         }
-
-         const documentContent: Pick<IMarketDocument, 'tldr' | 'summary' | 'content' | 'status'> = {
-            tldr: summarizedResponseJson.tldr,
-            summary: summarizedResponseJson.summary,
-            content: summarizedResponseJson.content,
+         const documentContent: Pick<IMarketDocument, 'content' | 'status'> = {
+            // tldr: summarizedResponseJson.tldr,
+            // summary: summarizedResponseJson.summary,
+            content: summarizedResponse,
             status: 'SUMMARIZED',
          };
 
          const response = await MarketDocumentRepository.update(document.id, documentContent);
-      });
+      }
    }
 
    async summarize(text: string) {
-      const persona = 'Você é um especialista em fundos imobiliários.\n\n';
+      const persona = 'Você é um assistente de API que SÓ responde com MARKDOWN válido.\n\n';
       const context =
          'Você acabou de receber um relatório da administradora do fundo com informações aos acionistas.\n\n';
       const task =
-         'Escreva uma mensagem que será enviada aos investidores compartilhando os principais pontos do relatório.\n' +
-         'A mensagem deve ser retornada em JSON no seguinte padrão: { tldr: string, summary: string, content: string }\n' +
-         'Retorne apenas o JSON puro, sem blocos de código, sem aspas extras.\n' +
-         'O summary deve conter no máximo 500 caracteres.\n' +
-         'O tldr, summary e content devem estar no formato markdown aceito pelo telegram.';
+         'Escreva no formato Markdown: ' +
+         '- Nome do Ativo e ticker;\n' +
+         '- TL;DR (too long did not read) em negrito e abaixo um resumo;\n' +
+         '- Resumo deve conter no máximo 10000;\n';
 
       const exemplar =
-         "Esta mensagem deve conter uma seção tl;dr (too long, didn't read) em negrito, background do relatório (porque este relatório foi enviado), quais os principais pontos informados no relatório (caso haja) como por exemplo:\n" +
+         'Esta mensagem deve conter quais os principais pontos informados no relatório (caso haja) como por exemplo:\n' +
          '- Rendimento distribuído por cota no mês e dividend yield;\n' +
          '- Situação de vacância dos imóveis ou inadimplência de recebíveis;\n' +
          '- Novas aquisições, vendas ou movimentações relevantes na carteira;\n' +
          '- Revisão de contratos ou renegociações com inquilinos;\n' +
          '- Mudanças na estratégia do fundo ou comentários da gestão sobre o cenário atual;\n' +
          '- Indicadores como P/VP, valor patrimonial por cota, evolução da receita e despesas;\n' +
-         '- Eventos extraordinários, como emissões de cotas ou impactos regulatórios;\n\n';
+         '- Eventos extraordinários, como emissões de cotas ou impactos regulatórios;\n' +
+         '- Ao comunicar novas locações ou encerramentos de contrato, não declare individualmente o impacto de distribuição mensal;\n' +
+         '- Não retorne bloco para substituir o link do relatório;\n' +
+         '- Não inclua texto explicativo, blocos de código;\n' +
+         '- Entre um item e outro quebre duas linhas;\n' +
+         '- Em toda mensagem DEVE haver TL;DR e o conteúdo abaixo.';
 
       const tone =
          'Use uma linguagem acessível, clara e que ajude o investidor a entender o momento do fundo sem precisar ler o relatório completo. Evite jargões técnicos e prefira explicações resumidas, com foco no que muda ou reforça a tese de investimento do fundo.';
 
-      const prompt = persona + context + task + exemplar + tone;
+      const example_output = `EXEMPLO DE SAÍDA:
+**XPTO11 (Fundo XPTO nome do fundo)**
+**O fundo XPT011 manteve seus rendimentos estáveis em R$0,95/cota e anunciou a aquisição de um novo galpão em São Paulo.**
+
+- **Rendimento**: Distribuído R$0,95 por cota, com um Dividend Yield de 1,1% no mês.\\n\\n- **Vacância**: A vacância física se manteve controlada em 2,5%.\\n\\n- **Movimentações**: Anunciada a compra do galpão logístico \\"Logis SP\\" por R$ 50 milhões.\\n\\n- **Indicadores**: O valor patrimonial da cota está em R$98,00, com o P/VP atual em 0,97."
+`;
+
+      const prompt = persona + context + task + exemplar + tone + example_output;
 
       const ollamaSummarizer = new OllamaSummarizer();
       const summarizedContent = await ollamaSummarizer.summarize(text, prompt);
@@ -284,14 +275,25 @@ class FinancialDocumentService {
    async publishMessages(status: IMarketDocument['status'] = 'SUMMARIZED') {
       const documents = await MarketDocumentRepository.findByStatus(status);
 
-      documents.forEach(async (document) => {
-         const message = document.tldr + '\n\n' + document.content;
-         const messageProcessor = new MessageProcessorService();
+      for (const document of documents) {
+         if (myFiis.some((item) => item.startsWith(document.ticker))) {
+            console.log('Enviará mensagem para: ', document.ticker);
 
-         console.log('--->', message);
+            let message = document.content;
+            const messageProcessor = new MessageProcessorService();
 
-         await messageProcessor.sendMessage('6681738390', message);
-      });
+            if (document.fileExtension === 'pdf') {
+               const url = `${this.DOWNLOAD_URL}?id=${document.externalId}`;
+               const link = `Acesse o relatório: ${url}`;
+               message += '\n\n' + link;
+            }
+
+            message +=
+               '\n\n---\n\n_ℹ️ Resumo gerado com IA e pode conter erros. Leia sempre o documento emitido pelo fundo. Esta não é uma recomendação de investimento._';
+
+            await messageProcessor.sendMessage('6681738390', message);
+         }
+      }
    }
 }
 
