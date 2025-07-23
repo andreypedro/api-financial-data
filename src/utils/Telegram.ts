@@ -24,7 +24,7 @@ export class Telegram {
 
          const payload = {
             chat_id: chatId,
-            text: this.markdownToTelegramHTML(text),
+            text: this.formatMessageForTelegramMarkdownV2(text),
             parse_mode: 'MarkdownV2',
          };
 
@@ -74,15 +74,36 @@ export class Telegram {
       }
    }
 
-   markdownToTelegramHTML(markdown: string): string {
-      return (
-         markdown
-            // Bold: **text** → <b>text</b>
-            .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-            // Italic: *text* → <i>text</i>
-            .replace(/\*(.+?)\*/g, '<i>$1</i>')
-            // Line breaks
-            .replace(/\n/g, '<br>')
-      );
+   formatMessageForTelegramMarkdownV2(message: string): string {
+      // Caracteres especiais que precisam ser escapados para MarkdownV2
+      const specialChars = /[_\*\[\]\(\)~`>#\+\-=\{\}\.!\\]/g;
+
+      // Substitui caracteres especiais, mas com uma exceção para o negrito
+      // A ideia é escapar os caracteres especiais que NÃO estão dentro de um par de **
+      // No Telegram, o negrito é feito com **texto**
+      let formattedMessage = message.replace(specialChars, (char) => '\\' + char);
+
+      // Agora, precisamos lidar com o negrito.
+      // A regex abaixo encontra pares de ** que não são escapados por uma barra invertida
+      // e os substitui por * (que é o que o Telegram usa para negrito em MarkdownV2)
+      // Além disso, garantimos que o conteúdo dentro do negrito não seja escapado duplamente.
+      formattedMessage = formattedMessage.replace(/\\\*\*(.*?)\\\*\*/g, '**$1**');
+
+      // Trata o caso em que o negrito é "escapado" mas a intenção é que seja negrito.
+      // Por exemplo, se a mensagem original tinha `**Nova emissão**`, nossa primeira `replace`
+      // transformaria em `\*\*Nova emissão\*\*`. O Telegram espera `**Nova emissão**`.
+      // Então, precisamos "reverter" o escape para os asteriscos que delimitam o negrito.
+      formattedMessage = formattedMessage.replace(/\\\*\\\*(.*?)\\\*\\\*/g, '**$1**');
+
+      // O Telegram MarkdownV2 usa `*` para negrito, não `**`.
+      // Se a intenção é ter negrito, devemos usar `*`.
+      // A sua mensagem original já usa `**`, então vamos ajustar isso.
+      formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '*$1*');
+
+      // Adicionalmente, alguns caracteres podem ser problemáticos após a primeira passada.
+      // A barra invertida (\) também precisa ser escapada se for literal.
+      formattedMessage = formattedMessage.replace(/\\(?![\*_\[\]\(\)~`>#\+\-=\{\}\.!])/g, '\\\\');
+
+      return formattedMessage;
    }
 }

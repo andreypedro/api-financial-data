@@ -35,9 +35,9 @@ class FinancialDocumentService {
 
       //await this.importFiles();
 
-      await this.summarizeDocuments();
+      // await this.summarizeDocuments();
 
-      // await this.publishMessages();
+      await this.publishMessages();
    }
 
    async importDataFromBMFBovespa(): Promise<IMarketDocumentUsable[]> {
@@ -287,6 +287,9 @@ class FinancialDocumentService {
       documents.forEach(async (document) => {
          const message = document.tldr + '\n\n' + document.content;
          const messageProcessor = new MessageProcessorService();
+
+         console.log('--->', message);
+
          await messageProcessor.sendMessage('6681738390', message);
       });
    }
