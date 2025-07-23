@@ -60,7 +60,7 @@ export class OllamaSummarizer {
       const generateUrl = `${this.ollamaBaseUrl}/api/generate`;
 
       // Constructing the prompt is key to getting a good summary
-      const prompt = `Por favor, resuma o seguinte texto ${summaryInstructions}:\n\n"""\n${textToSummarize}\n"""\n\nResumo:`;
+      const prompt = `${summaryInstructions}\n\n"""\n${textToSummarize}\n"""\n\nResumo:`;
 
       try {
          const response = await axios.post<OllamaGenerateResponse>(

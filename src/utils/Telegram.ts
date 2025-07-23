@@ -24,8 +24,8 @@ export class Telegram {
 
          const payload = {
             chat_id: chatId,
-            text,
-            parse_mode: 'Markdown',
+            text: this.markdownToTelegramHTML(text),
+            parse_mode: 'MarkdownV2',
          };
 
          const response = await axios.post(url, payload);
@@ -72,5 +72,17 @@ export class Telegram {
       } catch (error) {
          console.error('❌ Error getting updates:', error);
       }
+   }
+
+   markdownToTelegramHTML(markdown: string): string {
+      return (
+         markdown
+            // Bold: **text** → <b>text</b>
+            .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+            // Italic: *text* → <i>text</i>
+            .replace(/\*(.+?)\*/g, '<i>$1</i>')
+            // Line breaks
+            .replace(/\n/g, '<br>')
+      );
    }
 }

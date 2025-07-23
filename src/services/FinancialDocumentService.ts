@@ -20,18 +20,24 @@ class FinancialDocumentService {
    private readonly METADATA_URL =
       'https://fnet.bmfbovespa.com.br/fnet/publico/pesquisarGerenciadorDocumentosDados';
    private readonly DOWNLOAD_URL = 'https://fnet.bmfbovespa.com.br/fnet/publico/downloadDocumento';
+   private readonly FILES_PATH = path.resolve(__dirname, '../../temp');
 
    constructor() {}
 
    async import() {
-      const marketDocumentData = await this.importDataFromBMFBovespa();
+      // const marketDocumentData = await this.importDataFromBMFBovespa();
 
-      if (!marketDocumentData) {
-         throw new Error('Error while import data from BMF');
-      }
+      // if (!marketDocumentData) {
+      //    throw new Error('Error while import data from BMF');
+      // }
 
-      await this.saveMarketData(marketDocumentData);
-      await this.importFiles();
+      // await this.saveMarketData(marketDocumentData);
+
+      //await this.importFiles();
+
+      await this.summarizeDocuments();
+
+      // await this.publishMessages();
    }
 
    async importDataFromBMFBovespa(): Promise<IMarketDocumentUsable[]> {
@@ -52,7 +58,7 @@ class FinancialDocumentService {
 
       try {
          const foundType = 1;
-         const referenceDate = '15/07/2025';
+         const referenceDate = '17/07/2025';
          const status = 'A';
          const quantity = 100;
          const page = 1;
@@ -134,21 +140,17 @@ class FinancialDocumentService {
       for (const document of documents) {
          try {
             console.log(`Attempting to download file for externalId: ${document.externalId}`);
-            await this.getFileFromBMF(document.externalId, document.id);
-            console.log(`Successfully downloaded file for externalId: ${document.externalId}`);
 
-            const folder = path.resolve(__dirname, '../../temp');
-            const filePath = `${folder}/${document.id}.pdf`;
-            const pdfContent = await this.extractPdfContent(filePath);
-
-            console.log('pdfContent ==>', pdfContent);
-
-            const summarizedContent = await this.summarize(pdfContent);
-
-            console.log('Summarized Content:', summarizedContent);
-
-            const messageProcessor = new MessageProcessorService();
-            messageProcessor.sendMessage('6681738390', summarizedContent);
+            const fileResult = await this.getFileFromBMF(document.externalId, document.id);
+            if (fileResult.success) {
+               console.log(`Successfully downloaded file for externalId: ${document.externalId}`);
+               await MarketDocumentRepository.update(document.id, {
+                  status: 'FILE_DOWNLOADED',
+                  fileExtension: fileResult.extension,
+               });
+            } else {
+               console.error(`Failed to download file for externalId: ${document.externalId}`);
+            }
          } catch (error) {
             console.error(`Error downloading file for externalId ${document.externalId}:`, error);
          }
@@ -161,9 +163,9 @@ class FinancialDocumentService {
    async getFileFromBMF(
       externalId: IMarketDocument['externalId'],
       id: IMarketDocument['id']
-   ): Promise<void> {
+   ): Promise<{ success: boolean; extension?: string }> {
       const url = `${this.DOWNLOAD_URL}?id=${externalId}`;
-      const folder = path.resolve(__dirname, '../../temp');
+      const folder = this.FILES_PATH;
 
       try {
          const header: Record<string, string> = {
@@ -174,10 +176,15 @@ class FinancialDocumentService {
          };
 
          const downloader = new Downloader();
-         downloader.downloadFile(url, folder, id, header, 1000);
+         const result = await downloader.downloadFile(url, folder, id, header, 1000);
+         if (result.success) {
+            return { success: true, extension: result.extension };
+         } else {
+            return { success: false };
+         }
       } catch (error) {
          console.error(`Failed to download file from ${url}:`, error);
-         throw new Error(`Failed to download file: ${error}`);
+         return { success: false };
       }
    }
 
@@ -187,19 +194,101 @@ class FinancialDocumentService {
       return content;
    }
 
+   async summarizeDocuments(status: IMarketDocument['status'] = 'FILE_DOWNLOADED') {
+      function isValidResponse(
+         obj: any
+      ): obj is { tldr: string; summary: string; content: string } {
+         return (
+            typeof obj === 'object' &&
+            obj !== null &&
+            typeof obj.tldr === 'string' &&
+            typeof obj.summary === 'string' &&
+            typeof obj.content === 'string'
+         );
+      }
+
+      if (!status) {
+         throw new Error('Status was not sent.');
+      }
+
+      const documents = await MarketDocumentRepository.findByStatus(status);
+
+      documents.forEach(async (document) => {
+         const filePath = this.FILES_PATH + '/' + document.id + '.' + document.fileExtension;
+         const fileContent = await this.extractPdfContent(filePath);
+
+         const summarizedResponse: string = await this.summarize(fileContent);
+
+         // Remove blocos de markdown caso existam
+         let cleanResponse = summarizedResponse.trim();
+         if (cleanResponse.startsWith('```json')) {
+            cleanResponse = cleanResponse
+               .replace(/^```json/, '')
+               .replace(/```$/, '')
+               .trim();
+         } else if (cleanResponse.startsWith('```')) {
+            cleanResponse = cleanResponse.replace(/^```/, '').replace(/```$/, '').trim();
+         }
+
+         console.log('=====>', cleanResponse);
+
+         const summarizedResponseJson = JSON.parse(cleanResponse);
+
+         if (!isValidResponse(summarizedResponseJson)) {
+            throw new Error('AI response was not in the right format.');
+         }
+
+         const documentContent: Pick<IMarketDocument, 'tldr' | 'summary' | 'content' | 'status'> = {
+            tldr: summarizedResponseJson.tldr,
+            summary: summarizedResponseJson.summary,
+            content: summarizedResponseJson.content,
+            status: 'SUMMARIZED',
+         };
+
+         const response = await MarketDocumentRepository.update(document.id, documentContent);
+      });
+   }
+
    async summarize(text: string) {
-      let prompt: string = '';
-      prompt +=
-         'Por favor, **resuma o seguinte documento financeiro** em **Português do Brasil (PT-BR)**. ';
-      prompt +=
-         'O resumo é destinado a um **investidor não especialista**, então use uma **linguagem natural e fácil de entender**. ';
-      prompt +=
-         'Concentre-se em extrair e apresentar **apenas os pontos mais importantes**, como informações sobre **performance, riscos e oportunidades**.';
+      const persona = 'Você é um especialista em fundos imobiliários.\n\n';
+      const context =
+         'Você acabou de receber um relatório da administradora do fundo com informações aos acionistas.\n\n';
+      const task =
+         'Escreva uma mensagem que será enviada aos investidores compartilhando os principais pontos do relatório.\n' +
+         'A mensagem deve ser retornada em JSON no seguinte padrão: { tldr: string, summary: string, content: string }\n' +
+         'Retorne apenas o JSON puro, sem blocos de código, sem aspas extras.\n' +
+         'O summary deve conter no máximo 500 caracteres.\n' +
+         'O tldr, summary e content devem estar no formato markdown aceito pelo telegram.';
+
+      const exemplar =
+         "Esta mensagem deve conter uma seção tl;dr (too long, didn't read) em negrito, background do relatório (porque este relatório foi enviado), quais os principais pontos informados no relatório (caso haja) como por exemplo:\n" +
+         '- Rendimento distribuído por cota no mês e dividend yield;\n' +
+         '- Situação de vacância dos imóveis ou inadimplência de recebíveis;\n' +
+         '- Novas aquisições, vendas ou movimentações relevantes na carteira;\n' +
+         '- Revisão de contratos ou renegociações com inquilinos;\n' +
+         '- Mudanças na estratégia do fundo ou comentários da gestão sobre o cenário atual;\n' +
+         '- Indicadores como P/VP, valor patrimonial por cota, evolução da receita e despesas;\n' +
+         '- Eventos extraordinários, como emissões de cotas ou impactos regulatórios;\n\n';
+
+      const tone =
+         'Use uma linguagem acessível, clara e que ajude o investidor a entender o momento do fundo sem precisar ler o relatório completo. Evite jargões técnicos e prefira explicações resumidas, com foco no que muda ou reforça a tese de investimento do fundo.';
+
+      const prompt = persona + context + task + exemplar + tone;
 
       const ollamaSummarizer = new OllamaSummarizer();
-      const summarizedContent = await ollamaSummarizer.summarize(text.slice(0, 500), prompt);
+      const summarizedContent = await ollamaSummarizer.summarize(text, prompt);
 
       return summarizedContent;
+   }
+
+   async publishMessages(status: IMarketDocument['status'] = 'SUMMARIZED') {
+      const documents = await MarketDocumentRepository.findByStatus(status);
+
+      documents.forEach(async (document) => {
+         const message = document.tldr + '\n\n' + document.content;
+         const messageProcessor = new MessageProcessorService();
+         await messageProcessor.sendMessage('6681738390', message);
+      });
    }
 }
 
