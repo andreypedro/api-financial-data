@@ -11,6 +11,7 @@ import ExtractPdfContent from '../utils/ExtractPdfContent';
 import { OllamaSummarizer } from '../utils/OllamaSummarizer';
 import MessageProcessorService from './MessageProcessorService';
 import { myFiis } from '../data/myFiis';
+import PostRepository from '../repositories/PostRepository';
 
 type IMarketDocumentUsable = Pick<
    IMarketDocument,
@@ -38,7 +39,9 @@ class FinancialDocumentService {
 
       await this.summarizeDocuments();
 
-      await this.publishMessages();
+      await this.publishPost();
+
+      // await this.sendMessage();
    }
 
    async importDataFromBMFBovespa(): Promise<IMarketDocumentUsable[]> {
@@ -59,7 +62,7 @@ class FinancialDocumentService {
 
       try {
          const foundType = 1;
-         const referenceDate = '23/07/2025';
+         const referenceDate = '24/07/2025';
          const status = 'A';
          const quantity = 100;
          const page = 1;
@@ -243,10 +246,10 @@ class FinancialDocumentService {
       const persona = 'Você é um assistente de API que **SÓ responde com Markdown válido**.\n\n';
 
       const context =
-         'Você acabou de receber um relatório da administradora do fundo com informações aos acionistas.\n\n';
+         'Você acabou de receber um relatório da administradora do fundo com informações aos investidores.\n\n';
 
       const task =
-         'Formate a resposta exclusivamente em Markdown com os seguintes elementos:\n' +
+         'Escreva um texto que será um post/notícia que os investidores receberão via Telegram e também verão no site. Formate a resposta exclusivamente em Markdown com os seguintes elementos:\n' +
          '- Uma seção "**TL;DR**" (too long; didn’t read) com os principais destaques em negrito;\n' +
          '- Um resumo com no máximo 5.000 caracteres abaixo do TL;DR;\n' +
          '- Separe cada item do resumo com **duas quebras de linha**;\n';
@@ -291,7 +294,30 @@ class FinancialDocumentService {
       return summarizedContent;
    }
 
-   async publishMessages(status: IMarketDocument['status'] = 'SUMMARIZED') {
+   async publishPost(status: IMarketDocument['status'] = 'SUMMARIZED') {
+      const documents = await MarketDocumentRepository.findByStatus(status);
+
+      for (const document of documents) {
+         // PUBLISH A POST TO BE AVAILBLE ON SITE.
+         await PostRepository.create({
+            id: uuidv4(),
+            documentId: document.id,
+            ticker: document.ticker + '11',
+            content: document.content ? document.content : 'NULOOO',
+            publishedAt: new Date(),
+            type: 'report',
+         });
+
+         // UPDATE DOCUMENT AS PUBLISHED
+         const documentContent: Pick<IMarketDocument, 'status'> = {
+            status: 'PUBLISHED',
+         };
+
+         const response = await MarketDocumentRepository.update(document.id, documentContent);
+      }
+   }
+
+   async sendMessage(status: IMarketDocument['status'] = 'PUBLISHED') {
       const documents = await MarketDocumentRepository.findByStatus(status);
 
       for (const document of documents) {

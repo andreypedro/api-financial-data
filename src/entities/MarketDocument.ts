@@ -2,7 +2,13 @@ import { Document, model, Schema } from 'mongoose';
 
 export interface IMarketDocument extends Document {
    id: string;
-   status: 'PRE_SAVED' | 'FILE_DOWNLOADED' | 'SUMMARIZED' | 'DOWNLOAD_ERROR' | 'TICKER_NOT_FOUND';
+   status:
+      | 'PRE_SAVED'
+      | 'FILE_DOWNLOADED'
+      | 'SUMMARIZED'
+      | 'PUBLISHED'
+      | 'DOWNLOAD_ERROR'
+      | 'TICKER_NOT_FOUND';
    externalId: string;
    ticker: string;
    fundDescription: string;
@@ -17,7 +23,14 @@ const MarketDocumentSchema = new Schema<IMarketDocument>({
    id: { type: String, required: true, unique: true },
    status: {
       type: String,
-      enum: ['PRE_SAVED', 'FILE_DOWNLOADED', 'SUMMARIZED', 'DOWNLOAD_ERROR', 'TICKER_NOT_FOUND'],
+      enum: [
+         'PRE_SAVED',
+         'FILE_DOWNLOADED',
+         'SUMMARIZED',
+         'PUBLISHED',
+         'DOWNLOAD_ERROR',
+         'TICKER_NOT_FOUND',
+      ],
       required: true,
    },
    externalId: { type: String, required: true },
