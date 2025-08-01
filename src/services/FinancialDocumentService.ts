@@ -15,7 +15,7 @@ import PostRepository from '../repositories/PostRepository';
 
 type IMarketDocumentUsable = Pick<
    IMarketDocument,
-   'externalId' | 'status' | 'ticker' | 'fundDescription' | 'tradingName'
+   'externalId' | 'status' | 'ticker' | 'fundDescription' | 'tradingName' | 'category'
 >;
 
 class FinancialDocumentService {
@@ -62,11 +62,12 @@ class FinancialDocumentService {
 
       try {
          const foundType = 1;
-         const referenceDate = '24/07/2025';
+         const referenceDate = '31/07/2025';
          const status = 'A';
          const quantity = 100;
          const page = 1;
          const startFrom = quantity * (page - 1);
+         const excludedCategory = ['Regulamento'];
 
          const url = `${this.METADATA_URL}?d=1&s=${startFrom}&l=${quantity}&o%5B0%5D%5BdataEntrega%5D=desc&tipoFundo=${foundType}&idCategoriaDocumento=0&idTipoDocumento=0&idEspecieDocumento=0&situacao=${status}&dataReferencia=${referenceDate}&isSession=false&_=1752685996734`;
 
@@ -78,18 +79,28 @@ class FinancialDocumentService {
 
          const marketDocumentDataFromBMFBovespa: IMarketDcumentFromBMF_PTBR[] = response.data.data;
 
+         // console.log(marketDocumentDataFromBMFBovespa);
+
          const marketDocumentData: IMarketDocumentUsable[] = marketDocumentDataFromBMFBovespa
-            .filter((document) => document.nomePregao != '')
+            .filter((document) => document.nomePregao)
+            // NOT BRINGING SOME CATEGORIES.
+            .filter(
+               (document) =>
+                  document.categoriaDocumento &&
+                  !excludedCategory.some((category) =>
+                     document.categoriaDocumento.toLowerCase().includes(category.toLowerCase())
+                  )
+            )
             .map((document) => {
                const matchedFii = fiis.find((fii) => fii.tradingName === document.nomePregao);
-               const ticker = matchedFii?.ticker || null;
-
-               console.log('document.id', document.id);
-
                return {
                   externalId: document.id,
-                  status: ticker ? 'PRE_SAVED' : 'TICKER_NOT_FOUND',
-                  ticker: ticker as string,
+                  status: matchedFii ? 'PRE_SAVED' : 'TICKER_NOT_FOUND',
+                  ticker: matchedFii?.ticker ?? '',
+                  category:
+                     document.tipoDocumento === 'Rendimentos e Amortizações'
+                        ? 'DIVIDENDS'
+                        : 'REPORT',
                   fundDescription: document.descricaoFundo,
                   tradingName: document.nomePregao,
                };
@@ -225,7 +236,13 @@ class FinancialDocumentService {
 
          // console.log('File Content =>', fileContent);
 
-         const summarizedResponse: string = await this.summarize(fileContent);
+         if (fileContent.length > 16000) {
+            console.log(
+               `Cutting document ${document.id}.${document.fileExtension} with just 16.000 characters.`
+            );
+         }
+
+         const summarizedResponse: string = await this.summarize(fileContent.substring(0, 16000));
 
          console.log(
             `Document (${document.id}.${document.fileExtension}) - ${document.ticker} was summarized.`
@@ -243,16 +260,16 @@ class FinancialDocumentService {
    }
 
    async summarize(text: string) {
-      const persona = 'Você é um assistente de API que **SÓ responde com Markdown válido**.\n\n';
+      const persona =
+         'Você é um assistente de API que **DEVE responder com Markdown válido em português do Brasil (pt_BR)**.\n\n';
 
       const context =
          'Você acabou de receber um relatório da administradora do fundo com informações aos investidores.\n\n';
 
       const task =
-         'Escreva um texto que será um post/notícia que os investidores receberão via Telegram e também verão no site. Formate a resposta exclusivamente em Markdown com os seguintes elementos:\n' +
+         'Escreva um texto que será um post/notícia em terceira pessoa em relação ao fundo, em que os investidores receberão via Telegram e também verão no site. Formate a resposta exclusivamente em Markdown com os seguintes elementos:\n' +
          '- Uma seção "**TL;DR**" (too long; didn’t read) com os principais destaques em negrito;\n' +
-         '- Um resumo com no máximo 5.000 caracteres abaixo do TL;DR;\n' +
-         '- Separe cada item do resumo com **duas quebras de linha**;\n';
+         '- Um resumo com no máximo 5.000 caracteres abaixo do TL;DR;\n';
 
       const exemplar =
          'A mensagem deve destacar os principais pontos do relatório, se disponíveis, como por exemplo:\n' +
@@ -263,33 +280,45 @@ class FinancialDocumentService {
          '- Mudanças na estratégia do fundo ou comentários da gestão sobre o cenário atual;\n' +
          '- Indicadores como P/VP, valor patrimonial por cota, evolução de receitas e despesas;\n' +
          '- Eventos extraordinários como emissões de cotas ou impactos regulatórios;\n\n' +
+         '- Ao mencionar novas locações ou encerramentos de contrato, não declare o impacto exato na distribuição mensal.\n' +
          '**Importante:**\n' +
          '- Não explique o que está fazendo;\n' +
          '- Não adicione blocos de código nem links para o relatório;\n' +
          '- Não responda pedindo esclarecimentos, apenas entregue a melhor resposta possível com base nas instruções;\n' +
-         '- Responda sempre em idioma pt_BR;\n' +
+         '- Responda sempre em idioma Português do Brasil (pt_BR);\n' +
+         '- Não responda como se fosse a responsável pelo fundo, mas sim como um assistente que fornece informações sobre o fundo;\n' +
          '- Sempre inclua a seção TL;DR seguida do conteúdo;\n' +
-         '- Ao mencionar novas locações ou encerramentos de contrato, não declare o impacto exato na distribuição mensal.\n';
+         '- Não faça nenhum recomendação de investimento;\n' +
+         '- Não fale sobre o futuro ou faça previsões;\n' +
+         '- Não fale sobre imposto de renda;\n';
 
       const tone =
          'Use uma linguagem clara, acessível e direta, focando em ajudar o investidor a entender a situação do fundo sem precisar ler o relatório completo. Evite jargões técnicos e priorize explicações objetivas, destacando o que muda ou reforça a tese do fundo.';
 
       const example_output = `EXEMPLO DE SAÍDA:
-**O fundo XPTO11 manteve seus rendimentos estáveis em R$0,95/cota e anunciou a aquisição de um novo galpão em São Paulo.**
+      **O fundo XPTO11 manteve seus rendimentos estáveis em R$0,95/cota e anunciou a aquisição de um novo galpão em São Paulo.**
 
-- **Rendimento**: Distribuído R$0,95 por cota, com um Dividend Yield de 1,1% no mês.  
+      - **Rendimento**: Distribuído R$0,95 por cota, com um Dividend Yield de 1,1% no mês.
 
-- **Vacância**: A vacância física se manteve controlada em 2,5%.  
+      - **Vacância**: A vacância física se manteve controlada em 2,5%.
 
-- **Movimentações**: Anunciada a compra do galpão logístico "Logis SP" por R$ 50 milhões.  
+      - **Movimentações**: Anunciada a compra do galpão logístico "Logis SP" por R$ 50 milhões.
 
-- **Indicadores**: O valor patrimonial da cota está em R$98,00, com o P/VP atual em 0,97.
-`;
+      - **Indicadores**: O valor patrimonial da cota está em R$98,00, com o P/VP atual em 0,97.
+      `;
 
       const prompt = persona + context + task + exemplar + tone + example_output;
 
+      const options = {
+         temperature: 0.2,
+         top_p: 1.0,
+         top_k: 1,
+         num_ctx: 8192,
+         stop: [],
+      };
+
       const ollamaSummarizer = new OllamaSummarizer();
-      const summarizedContent = await ollamaSummarizer.summarize(text, prompt);
+      const summarizedContent = await ollamaSummarizer.summarize(text, prompt, options);
 
       return summarizedContent;
    }

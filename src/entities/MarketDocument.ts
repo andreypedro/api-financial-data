@@ -13,6 +13,7 @@ export interface IMarketDocument extends Document {
    ticker: string;
    fundDescription: string;
    tradingName: string;
+   category: 'DIVIDENDS' | 'REPORT';
    fileExtension: string;
    tldr: string;
    summary: string;
@@ -33,6 +34,7 @@ const MarketDocumentSchema = new Schema<IMarketDocument>({
       ],
       required: true,
    },
+   category: { type: String, enum: ['DIVIDENDS', 'REPORT'] },
    externalId: { type: String, required: true },
    ticker: { type: String, required: false },
    fundDescription: { type: String, required: true },

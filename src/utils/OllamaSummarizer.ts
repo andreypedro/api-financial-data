@@ -36,6 +36,7 @@ export class OllamaSummarizer {
    constructor(
       ollamaBaseUrl: string = 'http://localhost:11434',
       defaultModel: string = 'gemma3:12b'
+      // defaultModel: string = 'deepseek-r1'
    ) {
       this.ollamaBaseUrl = ollamaBaseUrl;
       this.defaultModel = defaultModel;
@@ -62,6 +63,8 @@ export class OllamaSummarizer {
       // Constructing the prompt is key to getting a good summary
       const prompt = `${summaryInstructions}\n\n"""\n${textToSummarize}\n"":`;
 
+      console.log(prompt.length);
+
       try {
          const response = await axios.post<OllamaGenerateResponse>(
             generateUrl,
@@ -75,7 +78,7 @@ export class OllamaSummarizer {
                headers: {
                   'Content-Type': 'application/json',
                },
-               timeout: 60000, // Set a timeout for the API call (30 seconds)
+               timeout: 120000,
             }
          );
 

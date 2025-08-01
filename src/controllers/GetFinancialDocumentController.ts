@@ -6,7 +6,7 @@ export const GetFinancialDocumentController = async (
    res: Response,
    next: NextFunction
 ): Promise<void> => {
-   req.setTimeout(10 * 60 * 1000); // 5 minutes
+   req.setTimeout(10 * 60 * 1000);
 
    try {
       const financialDocument = new FinancialDocumentService();
