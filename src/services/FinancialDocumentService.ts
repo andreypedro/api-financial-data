@@ -7,6 +7,7 @@ import MarketDocumentRepository from '../repositories/MarketDocumentRepository';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Downloader } from '../utils/Downloader';
+import { parseBmfDate } from '../utils/parseBmfDate';
 import ExtractPdfContent from '../utils/ExtractPdfContent';
 import { OllamaSummarizer } from '../utils/OllamaSummarizer';
 import MessageProcessorService from './MessageProcessorService';
@@ -15,7 +16,7 @@ import PostRepository from '../repositories/PostRepository';
 
 type IMarketDocumentUsable = Pick<
    IMarketDocument,
-   'externalId' | 'status' | 'ticker' | 'fundDescription' | 'tradingName' | 'category'
+   'externalId' | 'status' | 'ticker' | 'fundDescription' | 'tradingName' | 'createdAt' | 'category'
 >;
 
 class FinancialDocumentService {
@@ -62,7 +63,7 @@ class FinancialDocumentService {
 
       try {
          const foundType = 1;
-         const referenceDate = '31/07/2025';
+         const referenceDate = '30/07/2025';
          const status = 'A';
          const quantity = 100;
          const page = 1;
@@ -93,6 +94,10 @@ class FinancialDocumentService {
             )
             .map((document) => {
                const matchedFii = fiis.find((fii) => fii.tradingName === document.nomePregao);
+
+               const createdAt = parseBmfDate(document.dataEntrega) || new Date();
+               console.log('=========> Data de entrega: ', document.dataEntrega, createdAt);
+
                return {
                   externalId: document.id,
                   status: matchedFii ? 'PRE_SAVED' : 'TICKER_NOT_FOUND',
@@ -103,6 +108,7 @@ class FinancialDocumentService {
                         : 'REPORT',
                   fundDescription: document.descricaoFundo,
                   tradingName: document.nomePregao,
+                  createdAt,
                };
             });
 
@@ -130,6 +136,7 @@ class FinancialDocumentService {
             ticker: document.ticker,
             fundDescription: document.fundDescription,
             tradingName: document.tradingName,
+            createdAt: document.createdAt,
          };
          try {
             await MarketDocumentRepository.create(docToSave);
@@ -160,8 +167,8 @@ class FinancialDocumentService {
             if (fileResult.success) {
                console.log(`Successfully downloaded file for externalId: ${document.externalId}`);
                await MarketDocumentRepository.update(document.id, {
-                  status: 'FILE_DOWNLOADED',
-                  fileExtension: fileResult.extension,
+                  status: 'FILE_DOWNLOADED' as IMarketDocument['status'],
+                  fileExtension: fileResult.extension as IMarketDocument['fileExtension'],
                });
             } else {
                console.error(`Failed to download file for externalId: ${document.externalId}`);
@@ -290,7 +297,8 @@ class FinancialDocumentService {
          '- Sempre inclua a seção TL;DR seguida do conteúdo;\n' +
          '- Não faça nenhum recomendação de investimento;\n' +
          '- Não fale sobre o futuro ou faça previsões;\n' +
-         '- Não fale sobre imposto de renda;\n';
+         '- Não fale sobre imposto de renda;\n' +
+         '- Não confunda preço unitário com rendimento;\n';
 
       const tone =
          'Use uma linguagem clara, acessível e direta, focando em ajudar o investidor a entender a situação do fundo sem precisar ler o relatório completo. Evite jargões técnicos e priorize explicações objetivas, destacando o que muda ou reforça a tese do fundo.';
@@ -331,9 +339,11 @@ class FinancialDocumentService {
          await PostRepository.create({
             id: uuidv4(),
             documentId: document.id,
+            documentExternalId: document.externalId,
+            fileExtension: document.fileExtension,
             ticker: document.ticker + '11',
             content: document.content ? document.content : 'NULOOO',
-            publishedAt: new Date(),
+            publishedAt: document.createdAt,
             type: 'report',
          });
 

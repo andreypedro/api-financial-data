@@ -14,10 +14,11 @@ export interface IMarketDocument extends Document {
    fundDescription: string;
    tradingName: string;
    category: 'DIVIDENDS' | 'REPORT';
-   fileExtension: string;
+   fileExtension?: 'pdf' | 'xml';
    tldr: string;
    summary: string;
    content: string;
+   createdAt: Date;
 }
 
 const MarketDocumentSchema = new Schema<IMarketDocument>({
@@ -39,10 +40,11 @@ const MarketDocumentSchema = new Schema<IMarketDocument>({
    ticker: { type: String, required: false },
    fundDescription: { type: String, required: true },
    tradingName: { type: String, required: true },
-   fileExtension: { type: String, required: false, maxlength: 4 },
+   fileExtension: { type: String, enum: ['pdf', 'xml'], required: false },
    tldr: { type: String, required: false },
    summary: { type: String, required: false },
    content: { type: String, required: false },
+   createdAt: { type: Date, required: true },
 });
 
 export default model<IMarketDocument>('MarketDocument', MarketDocumentSchema);

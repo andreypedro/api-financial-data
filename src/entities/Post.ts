@@ -3,6 +3,8 @@ import { Document, model, Schema } from 'mongoose';
 export interface IPost extends Document {
    id: string;
    documentId?: string;
+   documentExternalId?: string;
+   fileExtension?: 'pdf' | 'xml';
    ticker: string;
    content: string;
    publishedAt: Date;
@@ -13,6 +15,8 @@ export interface IPost extends Document {
 const PostSchema = new Schema<IPost>({
    id: { type: String, required: true, unique: true },
    documentId: { type: String, required: false },
+   documentExternalId: { type: String, required: false },
+   fileExtension: { type: String, enum: ['pdf', 'xml'], required: false },
    ticker: { type: String, required: true },
    content: { type: String, required: true },
    publishedAt: { type: Date, required: true },
