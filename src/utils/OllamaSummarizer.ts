@@ -35,7 +35,7 @@ export class OllamaSummarizer {
     */
    constructor(
       ollamaBaseUrl: string = 'http://localhost:11434',
-      defaultModel: string = 'gemma3:12b'
+      defaultModel: string = 'qwen3:latest'
       // defaultModel: string = 'deepseek-r1'
    ) {
       this.ollamaBaseUrl = ollamaBaseUrl;
@@ -61,7 +61,9 @@ export class OllamaSummarizer {
       const generateUrl = `${this.ollamaBaseUrl}/api/generate`;
 
       // Constructing the prompt is key to getting a good summary
-      const prompt = `${summaryInstructions}\n\n"""\n${textToSummarize}\n"":`;
+      const prompt = `${summaryInstructions}\n\n"" RELATÓRIO: "\n${textToSummarize}\n"":`;
+
+      console.log('prompt: ', prompt);
 
       console.log(prompt.length);
 
