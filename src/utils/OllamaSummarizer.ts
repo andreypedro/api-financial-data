@@ -24,21 +24,21 @@ interface OllamaGenerateResponse {
  * often using tools like LangChain.js.
  */
 export class OllamaSummarizer {
-   private ollamaBaseUrl: string;
+   private baseUrl: string;
    private defaultModel: string;
 
    /**
     * Initializes the OllamaSummarizer with the base URL for your Ollama instance
     * and a default model to use.
-    * @param ollamaBaseUrl The base URL where your Ollama server is running (default: 'http://localhost:11434').
+    * @param baseUrl The base URL where your Ollama server is running (default: 'http://localhost:11434').
     * @param defaultModel The name of the Ollama model to use by default (default: 'phi-3-mini').
     */
    constructor(
-      ollamaBaseUrl: string = 'http://localhost:11434',
+      baseUrl: string = 'http://localhost:11434',
       defaultModel: string = 'qwen3:latest'
       // defaultModel: string = 'deepseek-r1'
    ) {
-      this.ollamaBaseUrl = ollamaBaseUrl;
+      this.baseUrl = baseUrl;
       this.defaultModel = defaultModel;
    }
 
@@ -58,7 +58,7 @@ export class OllamaSummarizer {
       options?: OllamaGenerateRequestOptions
    ): Promise<string> {
       const targetModel = this.defaultModel;
-      const generateUrl = `${this.ollamaBaseUrl}/api/generate`;
+      const generateUrl = `${this.baseUrl}/api/generate`;
 
       // Constructing the prompt is key to getting a good summary
       const prompt = `${summaryInstructions}\n\n"" RELATÓRIO: "\n${textToSummarize}\n"":`;
@@ -114,7 +114,7 @@ export class OllamaSummarizer {
                }
             } else if (axiosError.request) {
                // The request was made but no response was received (e.g., Ollama server is down)
-               errorMessage += `No response received. Verify that the Ollama server is running at '${this.ollamaBaseUrl}'.`;
+               errorMessage += `No response received. Verify that the Ollama server is running at '${this.baseUrl}'.`;
             } else {
                // Something else happened in setting up the request
                errorMessage += `Request setup error: ${axiosError.message}`;

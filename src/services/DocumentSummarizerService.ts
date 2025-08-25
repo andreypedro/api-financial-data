@@ -1,5 +1,8 @@
 import { OllamaSummarizer } from '../utils/OllamaSummarizer';
 
+const AI_BASE_URL = process.env.AI_BASE_URL || 'http://localhost:11434';
+const AI_MODEL = process.env.AI_MODEL || 'qwen3:latest';
+
 class DocumentSummarizerService {
    async summarize(text: string): Promise<string> {
       const persona =
@@ -43,7 +46,7 @@ class DocumentSummarizerService {
          num_ctx: 8192,
          stop: [],
       };
-      const ollamaSummarizer = new OllamaSummarizer();
+      const ollamaSummarizer = new OllamaSummarizer(AI_BASE_URL, AI_MODEL);
       return ollamaSummarizer.summarize(text, prompt, options);
    }
 }
